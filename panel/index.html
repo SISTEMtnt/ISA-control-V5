@@ -1,24 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mission Control Panel</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0b0f1a;
+  color: white;
+  padding: 20px;
+}
+
+h2 {
+  color: #00d4ff;
+}
+
+input {
+  display: block;
+  margin: 10px 0;
+  padding: 10px;
+  width: 250px;
+  background: #111827;
+  border: 1px solid #2a2f3a;
+  color: white;
+}
+
+button {
+  margin-right: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  background: #00d4ff;
+  border: none;
+  color: black;
+  font-weight: bold;
+}
+
+button:last-child {
+  background: #ff3b3b;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
 <h2>MISSION CONTROL</h2>
 
-<input id="time" placeholder="Countdown">
+<input id="time" type="number" placeholder="Countdown (seconds)">
 <input id="status" placeholder="Status">
 
 <button onclick="update()">UPDATE</button>
-<button onclick="abort()">ABORT</button>
+<button onclick="abortMission()">ABORT</button>
 
 <script>
-function update(){
-  fetch("http://localhost:3000/update", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
+const API_URL =
+  location.hostname === "localhost"
+    ? "http://localhost:3000"
+    : "https://YOUR-RENDER-URL.onrender.com";
+
+/* ================= UPDATE ================= */
+
+function update() {
+  fetch(`${API_URL}/update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      time:Number(document.getElementById("time").value),
-      status:document.getElementById("status").value
+      time: Number(document.getElementById("time").value),
+      status: document.getElementById("status").value
     })
   });
 }
 
-function abort(){
-  fetch("http://localhost:3000/abort", { method:"POST" });
+/* ================= ABORT ================= */
+
+function abortMission() {
+  fetch(`${API_URL}/abort`, {
+    method: "POST"
+  });
 }
 </script>
+
+</body>
+</html>
