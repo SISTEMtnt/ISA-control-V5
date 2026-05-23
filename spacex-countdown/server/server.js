@@ -3,13 +3,15 @@ const http = require("http");
 const WebSocket = require("ws");
 
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
 app.use(express.json());
 
 /* =========================
-   STATE (MISSION DATA)
+   PORT (RENDER FIX)
+========================= */
+const PORT = process.env.PORT || 3000;
+
+/* =========================
+   STATE
 ========================= */
 
 let state = {
@@ -21,32 +23,43 @@ let state = {
 };
 
 /* =========================
-   STATIC CONTROL PANEL
+   HTTP + WS SERVER
+========================= */
+
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+/* =========================
+   STATIC PANEL (optional)
 ========================= */
 
 app.use(express.static("panel"));
 
 /* =========================
-   WEBSOCKET BROADCAST
+   SAFE BROADCAST
 ========================= */
 
-function broadcast(payload) {
-  wss.clients.forEach(client => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify(payload));
+function broadcast(data) {
+  const message = JSON.stringify(data);
+
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(message);
     }
   });
 }
 
 /* =========================
-   API ROUTES
+   API
 ========================= */
 
-/**
- * Update mission state
- */
 app.post("/update", (req, res) => {
-  state = { ...state, ...req.body };
+  if (!req.body) return res.status(400).json({ error: "No body" });
+
+  state = {
+    ...state,
+    ...req.body
+  };
 
   broadcast({
     type: "update",
@@ -56,9 +69,6 @@ app.post("/update", (req, res) => {
   res.json({ ok: true, state });
 });
 
-/**
- * Abort mission
- */
 app.post("/abort", (req, res) => {
   state.aborted = true;
 
@@ -70,29 +80,32 @@ app.post("/abort", (req, res) => {
   res.json({ ok: true });
 });
 
-/**
- * Get current state (debug)
- */
 app.get("/state", (req, res) => {
   res.json(state);
 });
 
 /* =========================
-   WEBSOCKET CONNECTION
+   WEBSOCKET
 ========================= */
 
 wss.on("connection", (ws) => {
-  // send current state immediately on connect
-  ws.send(JSON.stringify({
-    type: "update",
-    state
-  }));
+  // send current state immediately
+  ws.send(
+    JSON.stringify({
+      type: "update",
+      state
+    })
+  );
+
+  ws.on("error", () => {
+    // prevents crash on bad clients
+  });
 });
 
 /* =========================
-   START SERVER
+   START
 ========================= */
 
-server.listen(3000, () => {
-  console.log("🚀 Mission Control running at http://localhost:3000");
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
