@@ -26,7 +26,7 @@ const abortScreen = document.getElementById("abortScreen");
 const WS_URL =
   location.hostname === "localhost"
     ? "ws://localhost:3000"
-    : "wss://YOUR-RENDER-URL.onrender.com";
+    : "https://isa-control-v5.onrender.com/";
 
 /* ================= CONNECT ================= */
 
