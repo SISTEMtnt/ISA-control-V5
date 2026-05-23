@@ -1,12 +1,16 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
+const cors = require("cors");
 
 const app = express();
+app.use(express.json());
+app.use(cors());
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
 /* =========================
    STATE (MISSION DATA)
@@ -21,19 +25,21 @@ let state = {
 };
 
 /* =========================
-   STATIC CONTROL PANEL
+   STATIC PANEL (optional)
 ========================= */
 
 app.use(express.static("panel"));
 
 /* =========================
-   WEBSOCKET BROADCAST
+   BROADCAST HELPERS
 ========================= */
 
 function broadcast(payload) {
+  const msg = JSON.stringify(payload);
+
   wss.clients.forEach(client => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify(payload));
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(msg);
     }
   });
 }
@@ -71,18 +77,17 @@ app.post("/abort", (req, res) => {
 });
 
 /**
- * Get current state (debug)
+ * Debug state
  */
 app.get("/state", (req, res) => {
   res.json(state);
 });
 
 /* =========================
-   WEBSOCKET CONNECTION
+   WEBSOCKET
 ========================= */
 
 wss.on("connection", (ws) => {
-  // send current state immediately on connect
   ws.send(JSON.stringify({
     type: "update",
     state
@@ -93,6 +98,6 @@ wss.on("connection", (ws) => {
    START SERVER
 ========================= */
 
-server.listen(3000, () => {
-  console.log("🚀 Mission Control running at http://localhost:3000");
+server.listen(PORT, () => {
+  console.log(`🚀 Mission Control running on port ${PORT}`);
 });
