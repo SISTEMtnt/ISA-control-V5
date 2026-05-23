@@ -1,7 +1,11 @@
+const { ipcRenderer } = require("electron");
+
 let ws;
 let reconnectTimer;
 
-const state = {
+/* ================= STATE ================= */
+
+let state = {
   time: 20,
   status: "SYSTEMS NOMINAL",
   launched: false,
@@ -9,7 +13,7 @@ const state = {
   elapsed: 0
 };
 
-/* ================= ELEMENTS ================= */
+/* ================= DOM ================= */
 
 const hud = document.getElementById("hud");
 const timer = document.getElementById("timer");
@@ -17,7 +21,7 @@ const statusEl = document.getElementById("status");
 const center = document.getElementById("center");
 const abortScreen = document.getElementById("abortScreen");
 
-/* ================= FORMAT ================= */
+/* ================= UTIL ================= */
 
 function pad(n) {
   return String(n).padStart(2, "0");
@@ -29,7 +33,7 @@ function connectWS() {
   ws = new WebSocket("ws://localhost:3000");
 
   ws.onopen = () => {
-    console.log("WS connected");
+    console.log("WebSocket connected");
     clearTimeout(reconnectTimer);
   };
 
@@ -45,13 +49,13 @@ function connectWS() {
       if (data.type === "abort") {
         abortUI();
       }
-    } catch (err) {
-      console.error("Bad WS message", err);
+    } catch (e) {
+      console.error("Invalid WS message", e);
     }
   };
 
   ws.onclose = () => {
-    console.log("WS closed, reconnecting...");
+    console.log("WebSocket disconnected — reconnecting...");
     reconnectTimer = setTimeout(connectWS, 2000);
   };
 }
@@ -61,7 +65,7 @@ connectWS();
 /* ================= STATE MERGE ================= */
 
 function mergeState(newState) {
-  Object.assign(state, newState);
+  state = { ...state, ...newState };
 }
 
 /* ================= UI ================= */
@@ -93,13 +97,12 @@ function abortUI() {
   hud.style.display = "none";
 }
 
-/* ================= ELECTRON (SAFE WAY) ================= */
-/* This only works if preload exposes it */
-
-window.api?.onAbort(() => {
-  abortUI();
-});
+/* ================= ELECTRON IPC (NO PRELOAD) ================= */
 
 function abortApp() {
-  window.api?.abortApp();
+  ipcRenderer.send("abort");
 }
+
+ipcRenderer.on("abort", () => {
+  abortUI();
+});
